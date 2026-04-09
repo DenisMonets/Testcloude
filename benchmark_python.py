@@ -98,9 +98,8 @@ def compute_cumulative(df):
             .cum_sum()
             .over(GROUP_COLS)
             .alias("sales_amount_cumsum"),
-        pl.col("sales_qty")
-            .cum_mean()
-            .over(GROUP_COLS)
+        (pl.col("sales_qty").cum_sum().over(GROUP_COLS)
+            / pl.col("sales_qty").cum_count().over(GROUP_COLS))
             .alias("sales_qty_cummean"),
         pl.col("sales_qty")
             .cum_max()
