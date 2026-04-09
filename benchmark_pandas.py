@@ -61,9 +61,12 @@ print(f"[1] Lag features (1, 7, 14, 28):        {lag_time:.2f}s")
 @timer
 def compute_rolling(df, grouped):
     for window in [7, 28]:
-        roll = grouped["sales_qty"].rolling(window, min_periods=window)
-        df[f"sales_qty_rolling_mean_{window}"] = roll.mean().reset_index(level=[0, 1], drop=True)
-        df[f"sales_qty_rolling_std_{window}"] = roll.std().reset_index(level=[0, 1], drop=True)
+        df[f"sales_qty_rolling_mean_{window}"] = grouped["sales_qty"].transform(
+            lambda x: x.rolling(window, min_periods=window).mean()
+        )
+        df[f"sales_qty_rolling_std_{window}"] = grouped["sales_qty"].transform(
+            lambda x: x.rolling(window, min_periods=window).std()
+        )
     return df
 
 df, rolling_time = compute_rolling(df, grouped)
@@ -75,7 +78,9 @@ print(f"[2] Rolling features (mean/std 7, 28):   {rolling_time:.2f}s")
 def compute_cumulative(df, grouped):
     df["sales_qty_cumsum"] = grouped["sales_qty"].cumsum()
     df["sales_amount_cumsum"] = grouped["sales_amount"].cumsum()
-    df["sales_qty_cummean"] = grouped["sales_qty"].expanding().mean().reset_index(level=[0, 1], drop=True)
+    df["sales_qty_cummean"] = grouped["sales_qty"].transform(
+        lambda x: x.expanding().mean()
+    )
     df["sales_qty_cummax"] = grouped["sales_qty"].cummax()
     return df
 
@@ -87,10 +92,8 @@ print(f"[3] Cumulative features (sum/mean/max):  {cumul_time:.2f}s")
 @timer
 def compute_iterative(df, grouped):
     for span in [7, 28]:
-        df[f"sales_qty_ewm_{span}"] = (
-            grouped["sales_qty"]
-            .apply(lambda x: x.ewm(span=span).mean(), include_groups=False)
-            .reset_index(level=[0, 1], drop=True)
+        df[f"sales_qty_ewm_{span}"] = grouped["sales_qty"].transform(
+            lambda x: x.ewm(span=span).mean()
         )
     for n in [1, 7]:
         df[f"sales_qty_diff_{n}"] = grouped["sales_qty"].diff(n)
